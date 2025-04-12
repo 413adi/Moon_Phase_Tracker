@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Phase Tracker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1c2331 0%, #0f172a 100%);
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: rgba(15, 23, 42, 0.8);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            width: 80%;
+            max-width: 600px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #e2e8f0;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .info-box {
+            background-color: rgba(30, 41, 59, 0.7);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .moon-display {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 2rem 0;
+        }
+        .moon {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            background-color: #e2e8f0;
+        }
+        .shadow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: #0f172a;
+            transform-origin: 50% 50%;
+        }
+        .date-time {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+        .moon-info {
+            text-align: center;
+            font-size: 1.25rem;
+            margin-top: 1rem;
+            color: #e2e8f0;
+        }
+        .next-moons {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .next-moon-box {
+            flex: 1;
+            min-width: 200px;
+            background-color: rgba(30, 41, 59, 0.7);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .next-moon-box h3 {
+            margin-top: 0;
+            color: #e2e8f0;
+        }
+        .moon-date {
+            font-size: 1.1rem;
+            margin: 0.5rem 0;
+            color: #cbd5e1;
+        }
+        .moon-time {
+            font-size: 1rem;
+            color: #94a3b8;
+        }
+        .update-button {
+            display: block;
+            margin: 1.5rem auto 0;
+            padding: 0.75rem 1.5rem;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .update-button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Moon Phase Tracker</h1>
+        
+        <div class="info-box">
+            <div class="date-time" id="current-date-time">Loading current date and time...</div>
+            
+            <div class="moon-display">
+                <div class="moon">
+                    <div class="shadow" id="moon-shadow"></div>
+                </div>
+            </div>
+            
+            <div class="moon-info" id="moon-phase-info">
+                Calculating moon phase...
+            </div>
+        </div>
+        
+        <div class="next-moons">
+            <div class="next-moon-box">
+                <h3>Next Full Moon</h3>
+                <div class="moon-date" id="next-full-moon-date">Calculating...</div>
+                <div class="moon-time" id="next-full-moon-time"></div>
+            </div>
+            
+            <div class="next-moon-box">
+                <h3>Next New Moon</h3>
+                <div class="moon-date" id="next-new-moon-date">Calculating...</div>
+                <div class="moon-time" id="next-new-moon-time"></div>
+            </div>
+        </div>
+        
+        <button class="update-button" id="update-button">Update Now</button>
+    </div>
+
+    <script>
+        // Moon phase calculation constants
+        const LUNAR_MONTH = 29.530588853; // Length of lunar month in days
+        const KNOWN_NEW_MOON = new Date('2000-01-06T18:14:00Z'); // Known new moon reference date
+
+        // Update the date and time
+        function updateDateTime() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            document.getElementById('current-date-time').textContent = now.toLocaleDateString(undefined, options);
+        }
+
+        // Calculate moon phase (0-1)
+        function getMoonPhase(date) {
+            // Calculate days since known new moon
+            const daysSinceNewMoon = (date - KNOWN_NEW_MOON) / (1000 * 60 * 60 * 24);
+            
+            // Calculate the current phase (0 to 1)
+            return (daysSinceNewMoon % LUNAR_MONTH) / LUNAR_MONTH;
+        }
+
+        // Get moon phase name
+        function getMoonPhaseName(phase) {
+            if (phase < 0.025 || phase >= 0.975) return "New Moon";
+            if (phase < 0.225) return "Waxing Crescent";
+            if (phase < 0.275) return "First Quarter";
+            if (phase < 0.475) return "Waxing Gibbous";
+            if (phase < 0.525) return "Full Moon";
+            if (phase < 0.725) return "Waning Gibbous";
+            if (phase < 0.775) return "Last Quarter";
+            return "Waning Crescent";
+        }
+        
+        // Convert lunar cycle phase (0-1) to illumination percentage (0-100)
+        function getIlluminationPercentage(phase) {
+            // For new moon (phase near 0 or 1), illumination is 0%
+            // For full moon (phase near 0.5), illumination is 100%
+            if (phase <= 0.5) {
+                // From new moon to full moon (0% to 100%)
+                return Math.round(phase * 200);
+            } else {
+                // From full moon to new moon (100% to 0%)
+                return Math.round((1 - phase) * 200);
+            }
+        }
+
+        // Calculate next full and new moons
+        function calculateNextMoons(currentDate) {
+            const currentPhase = getMoonPhase(currentDate);
+            
+            // Calculate days until next full moon (phase 0.5)
+            let daysToFullMoon;
+            if (currentPhase < 0.5) {
+                daysToFullMoon = (0.5 - currentPhase) * LUNAR_MONTH;
+            } else {
+                daysToFullMoon = (1.5 - currentPhase) * LUNAR_MONTH;
+            }
+            
+            // Calculate days until next new moon (phase 0)
+            let daysToNewMoon;
+            if (currentPhase < 0.975) {
+                daysToNewMoon = (1 - currentPhase) * LUNAR_MONTH;
+            } else {
+                // Already very close to new moon, calculate to next one
+                daysToNewMoon = (2 - currentPhase) * LUNAR_MONTH;
+            }
+            
+            // Calculate the dates
+            const nextFullMoon = new Date(currentDate.getTime() + daysToFullMoon * 24 * 60 * 60 * 1000);
+            const nextNewMoon = new Date(currentDate.getTime() + daysToNewMoon * 24 * 60 * 60 * 1000);
+            
+            return { nextFullMoon, nextNewMoon };
+        }
+
+        // Update the moon shadow display
+        function updateMoonDisplay(phase) {
+            const shadow = document.getElementById('moon-shadow');
+            
+            // Offset for shadow animation
+            let xPos = '0%';
+            let angle = 0;
+            
+            if (phase <= 0.5) {
+                // New to Full (right shadow moving left)
+                angle = 0;
+                xPos = (phase * 2 * 100) + '%';
+                shadow.style.background = `linear-gradient(${angle}deg, transparent 0%, transparent 50%, #0f172a 50%, #0f172a 100%)`;
+                shadow.style.left = xPos;
+                shadow.style.right = 'auto';
+            } else {
+                // Full to New (left shadow moving right)
+                angle = 180;
+                xPos = ((phase - 0.5) * 2 * 100) + '%';
+                shadow.style.background = `linear-gradient(${angle}deg, transparent 0%, transparent 50%, #0f172a 50%, #0f172a 100%)`;
+                shadow.style.right = xPos;
+                shadow.style.left = 'auto';
+            }
+        }
+
+        // Format date for display
+        function formatMoonDate(date) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit' };
+            
+            document.getElementById('next-full-moon-date').textContent = date.nextFullMoon.toLocaleDateString(undefined, options);
+            document.getElementById('next-full-moon-time').textContent = date.nextFullMoon.toLocaleTimeString(undefined, timeOptions);
+            
+            document.getElementById('next-new-moon-date').textContent = date.nextNewMoon.toLocaleDateString(undefined, options);
+            document.getElementById('next-new-moon-time').textContent = date.nextNewMoon.toLocaleTimeString(undefined, timeOptions);
+        }
+
+        // Update all moon information
+        function updateMoonInfo() {
+            const now = new Date();
+            const phase = getMoonPhase(now);
+            const phaseName = getMoonPhaseName(phase);
+            const illuminationPercent = getIlluminationPercentage(phase);
+            
+            // Update moon phase info
+            document.getElementById('moon-phase-info').textContent = `Current Phase: ${phaseName} (${illuminationPercent}% illuminated)`;
+            
+            // Update moon display
+            updateMoonDisplay(phase);
+            
+            // Calculate and display next full and new moons
+            const nextMoons = calculateNextMoons(now);
+            formatMoonDate(nextMoons);
+        }
+
+        // Initialize and set up updates
+        function initialize() {
+            updateDateTime();
+            updateMoonInfo();
+            
+            // Update every second for time
+            setInterval(updateDateTime, 1000);
+            
+            // Add click handler for update button
+            document.getElementById('update-button').addEventListener('click', function() {
+                updateDateTime();
+                updateMoonInfo();
+            });
+        }
+
+        // Run on page load
+        window.addEventListener('DOMContentLoaded', initialize);
+    </script>
+</body>
+</html>
